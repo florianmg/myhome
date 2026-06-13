@@ -42,7 +42,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="silk">
+    <html lang="fr" data-theme="silk">
       <head>
         <HeadContent />
       </head>
