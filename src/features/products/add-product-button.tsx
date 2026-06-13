@@ -1,10 +1,22 @@
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { BarcodeScannerModal } from './barcode-scanner-modal'
 import { requestCameraAccess, stopCameraStream } from './camera-access'
+import { ProductFormModal } from './product-form-modal'
+
+import { fetchProductByBarcode } from '#/integrations/openfoodfacts/api'
 
 type AddProductButtonProps = {
   onBarcodeScanned?: (barcode: string) => void
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Impossible de récupérer les informations du produit.'
 }
 
 export function AddProductButton({ onBarcodeScanned }: AddProductButtonProps) {
@@ -12,7 +24,19 @@ export function AddProductButton({ onBarcodeScanned }: AddProductButtonProps) {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [isRequestingCamera, setIsRequestingCamera] = useState(false)
-  const [scannedProduct, setScannedProduct] = useState<string | null>(null)
+  const [pendingBarcode, setPendingBarcode] = useState<string | null>(null)
+
+  const {
+    data: fetchResult,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['openfoodfacts', 'product', pendingBarcode],
+    queryFn: () => fetchProductByBarcode(pendingBarcode!),
+    enabled: pendingBarcode !== null,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const closeScanner = () => {
     if (cameraStream) {
@@ -20,6 +44,10 @@ export function AddProductButton({ onBarcodeScanned }: AddProductButtonProps) {
       setCameraStream(null)
     }
     setIsScannerOpen(false)
+  }
+
+  const closeProductForm = () => {
+    setPendingBarcode(null)
   }
 
   const handleOpenScanner = async () => {
@@ -40,21 +68,13 @@ export function AddProductButton({ onBarcodeScanned }: AddProductButtonProps) {
 
   const handleScan = (barcode: string) => {
     closeScanner()
-    setScannedProduct(barcode)
+    setPendingBarcode(barcode)
     onBarcodeScanned?.(barcode)
   }
 
   return (
     <>
       <div className="fixed inset-x-0 bottom-0 flex flex-col gap-3 p-4">
-        {scannedProduct && (
-          <div role="status" className="alert alert-success shadow-lg">
-            <span>
-              Code scanné :{' '}
-              <span className="font-mono font-semibold">{scannedProduct}</span>
-            </span>
-          </div>
-        )}
         {cameraError && (
           <div role="alert" className="alert alert-error shadow-lg">
             <span>{cameraError}</span>
@@ -78,6 +98,17 @@ export function AddProductButton({ onBarcodeScanned }: AddProductButtonProps) {
           stream={cameraStream}
           onClose={closeScanner}
           onScan={handleScan}
+        />
+      )}
+      {pendingBarcode !== null && (
+        <ProductFormModal
+          barcode={pendingBarcode}
+          fetchResult={fetchResult}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage={isError ? getErrorMessage(error) : null}
+          onClose={closeProductForm}
+          onSubmit={closeProductForm}
         />
       )}
     </>
