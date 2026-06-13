@@ -6,6 +6,7 @@ type ScannerState =
   | { status: 'error'; message: string }
 
 type BarcodeScannerModalProps = {
+  stream: MediaStream
   onClose: () => void
   onScan: (barcode: string) => void
 }
@@ -23,6 +24,7 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 export function BarcodeScannerModal({
+  stream,
   onClose,
   onScan,
 }: BarcodeScannerModalProps) {
@@ -46,45 +48,48 @@ export function BarcodeScannerModal({
     onCloseRef.current()
   }, [cleanupScanner])
 
-  const initScanner = useCallback(async (video: HTMLVideoElement) => {
-    if (initStartedRef.current) {
-      return
-    }
+  const initScanner = useCallback(
+    async (video: HTMLVideoElement) => {
+      if (initStartedRef.current) {
+        return
+      }
 
-    initStartedRef.current = true
+      initStartedRef.current = true
 
-    try {
-      const { BrowserMultiFormatReader } = await import('@zxing/browser')
-      const reader = new BrowserMultiFormatReader()
+      try {
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const reader = new BrowserMultiFormatReader()
 
-      const controls = await reader.decodeFromConstraints(
-        { video: { facingMode: 'environment' } },
-        video,
-        (result, error) => {
-          if (result) {
-            controlsRef.current?.stop()
-            controlsRef.current = null
-            onScanRef.current(result.getText())
-            return
-          }
+        const controls = await reader.decodeFromStream(
+          stream,
+          video,
+          (result, error) => {
+            if (result) {
+              controlsRef.current?.stop()
+              controlsRef.current = null
+              onScanRef.current(result.getText())
+              return
+            }
 
-          if (error && !isNotFoundError(error)) {
-            console.error(error)
-          }
-        },
-      )
+            if (error && !isNotFoundError(error)) {
+              console.error(error)
+            }
+          },
+        )
 
-      controlsRef.current = controls
-      setState({ status: 'ready' })
-    } catch (error) {
-      initStartedRef.current = false
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Impossible d'accéder à la caméra"
-      setState({ status: 'error', message })
-    }
-  }, [])
+        controlsRef.current = controls
+        setState({ status: 'ready' })
+      } catch (error) {
+        initStartedRef.current = false
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Impossible d'accéder à la caméra"
+        setState({ status: 'error', message })
+      }
+    },
+    [stream],
+  )
 
   const videoRefCallback = useCallback(
     (video: HTMLVideoElement | null) => {
