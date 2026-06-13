@@ -1,3 +1,1 @@
-export { getDb, getFirebaseApp } from './client'
-export { firebaseConfig } from './config'
-export type { FirebaseConfig } from './config'
+export { getFirebaseAuth, signInWithGoogle, signOutUser } from './auth'
