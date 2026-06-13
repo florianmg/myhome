@@ -26,22 +26,27 @@ export function BarcodeScannerModal({
   onClose,
   onScan,
 }: BarcodeScannerModalProps) {
+  const onCloseRef = useRef(onClose)
+  const onScanRef = useRef(onScan)
+  onCloseRef.current = onClose
+  onScanRef.current = onScan
+
   const controlsRef = useRef<ScannerControls | null>(null)
   const initStartedRef = useRef(false)
   const [state, setState] = useState<ScannerState>({ status: 'loading' })
 
-  const stopScanner = useCallback(() => {
+  const cleanupScanner = useCallback(() => {
     controlsRef.current?.stop()
     controlsRef.current = null
     initStartedRef.current = false
   }, [])
 
-  const handleClose = () => {
-    stopScanner()
-    onClose()
-  }
+  const handleClose = useCallback(() => {
+    cleanupScanner()
+    onCloseRef.current()
+  }, [cleanupScanner])
 
-  const initScanner = async (video: HTMLVideoElement) => {
+  const initScanner = useCallback(async (video: HTMLVideoElement) => {
     if (initStartedRef.current) {
       return
     }
@@ -57,8 +62,9 @@ export function BarcodeScannerModal({
         video,
         (result, error) => {
           if (result) {
-            stopScanner()
-            onScan(result.getText())
+            controlsRef.current?.stop()
+            controlsRef.current = null
+            onScanRef.current(result.getText())
             return
           }
 
@@ -78,16 +84,19 @@ export function BarcodeScannerModal({
           : "Impossible d'accéder à la caméra"
       setState({ status: 'error', message })
     }
-  }
+  }, [])
 
-  const videoRefCallback = (video: HTMLVideoElement | null) => {
-    if (video) {
-      void initScanner(video)
-      return
-    }
+  const videoRefCallback = useCallback(
+    (video: HTMLVideoElement | null) => {
+      if (video) {
+        void initScanner(video)
+        return
+      }
 
-    stopScanner()
-  }
+      cleanupScanner()
+    },
+    [cleanupScanner, initScanner],
+  )
 
   return (
     <dialog open className="modal modal-open">
@@ -103,6 +112,7 @@ export function BarcodeScannerModal({
             <video
               ref={videoRefCallback}
               className="size-full object-cover"
+              autoPlay
               muted
               playsInline
             />
