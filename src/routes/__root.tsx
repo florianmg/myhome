@@ -16,6 +16,25 @@ interface MyRouterContext {
   queryClient: QueryClient
 }
 
+function registerServiceWorker() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return
+  }
+
+  const register = () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }
+
+  if (document.readyState === 'complete') {
+    register()
+    return
+  }
+
+  window.addEventListener('load', register)
+}
+
+registerServiceWorker()
+
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
@@ -27,13 +46,21 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'MyHome',
+      },
+      {
+        name: 'theme-color',
+        content: '#ffffff',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
       },
     ],
   }),

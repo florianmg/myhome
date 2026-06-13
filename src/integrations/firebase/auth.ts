@@ -4,11 +4,11 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   signOut,
-  type Auth,
-  type User,
 } from 'firebase/auth'
 
 import { getFirebaseApp } from './client'
+
+import type { Auth, User } from 'firebase/auth'
 
 export interface AuthSnapshot {
   user: User | null

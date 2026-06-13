@@ -1,7 +1,10 @@
-import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app'
-import { getFirestore, type Firestore } from 'firebase/firestore'
+import { getApp, getApps, initializeApp } from 'firebase/app'
+import { getFirestore } from 'firebase/firestore'
 
 import { firebaseConfig } from './config'
+
+import type { FirebaseApp } from 'firebase/app'
+import type { Firestore } from 'firebase/firestore'
 
 let firebaseApp: FirebaseApp | undefined
 let firestore: Firestore | undefined
